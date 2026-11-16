@@ -41,6 +41,7 @@ class StreamRecorder:
             self.quality,
             "-o",
             str(self.output_file.resolve()),
+            "-f",
             "--retry-streams",
             str(self.retry_delay),
         ]
@@ -59,8 +60,10 @@ class StreamRecorder:
                         clean_line = line.strip()
                         if "Opening stream" in clean_line or "Writing output" in clean_line:
                             print(f"[Streamlink] {clean_line}")
+                        elif "[cli][error]" in clean_line or "error:" in clean_line:
+                            print(f"[Streamlink Error] {clean_line}")
             except Exception as e:
-                print(f"[Streamlink Error] {e}")
+                print(f"[Streamlink Exception] {e}")
 
         self._thread = threading.Thread(target=_runner, daemon=True)
         self._thread.start()
