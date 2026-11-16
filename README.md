@@ -2,117 +2,129 @@
 
 Clip Watcher is an autonomous pipeline and AI assistant skill that records live Twitch broadcasts, tracks audience reaction spikes via anonymous chat monitoring, cuts highlight clips with FFmpeg using pre-reaction time offsets, burns subtitles with Whisper, and packages clips with mandatory streamer credits.
 
-Published on AIStoreHub: [https://www.aistorehub.in/abhinavm945/catalog/clip-watcher](https://www.aistorehub.in/abhinavm945/catalog/clip-watcher)
+Published on AIStoreHub: [https://www.aistorehub.in/abhinavm945/catalog/clip-watcher](https://www.aistorehub.in/abhinavm945/catalog/clip-watcher)  
+GitHub Repository: [https://github.com/abhinavm945/clip-watcher](https://github.com/abhinavm945/clip-watcher)  
+Live Twitch Target Example: [https://www.twitch.tv/lexigraham](https://www.twitch.tv/lexigraham)
 
 ---
 
 ## Architectural Workflow
 
 ```
-[Live Broadcast]
-       |
-       v
-1. Streamlink Recording (stream.ts)
-       |
-       +---> 2. Anonymous Twitch IRC (chat.log)
-                    |
-                    v
-             3. Sliding Window Velocity Tracker
-                (10s bucket vs 5-minute rolling average)
-                    |
-                    v (Rate >= 3x Baseline)
-             4. FFmpeg Clip Extraction
-                (-30s reaction offset, 45s duration)
-                    |
-                    v
-             5. Whisper Transcription & Caption Burning
-                    |
-                    v
-             6. Streamer Attribution & Credits Packaging
+[Live Twitch Broadcast: twitch.tv/lexigraham]
+                         |
+                         v
+1. Streamlink Continuous Capture (stream.ts)
+                         |
+                         +---> 2. Anonymous Twitch IRC (chat.log)
+                                      |
+                                      v
+                               3. Sliding Window Velocity Tracker
+                                  (10s bucket vs 5-minute rolling average)
+                                      |
+                                      v (Velocity >= 3x Baseline)
+                               4. FFmpeg Video Extraction
+                                  (-30s reaction offset, 45s duration)
+                                      |
+                                      v
+                               5. Whisper Transcription & Caption Burning
+                                      |
+                                      v
+                               6. Streamer Attribution & Credits Packaging
 ```
 
 ---
 
-## Five Key Components
+## Input and Output Specifications
 
-1. **Continuous Stream Capture:** Uses Streamlink with persistent retry policies (`--retry-streams 30`) to wait until the broadcast goes live and record without missing the opening seconds.
-2. **Account-Free Anonymous IRC:** Connects directly to `irc.chat.twitch.tv:6667` with a read-only `justinfan` handle. No Twitch API keys, OAuth tokens, or user accounts are required.
-3. **Statistical Velocity Analysis:** Tracks messages per 10-second window relative to a rolling 5-minute baseline. Detects sudden audience surges (chat velocity exceeding 3x baseline) signaling high-energy gameplay, clutch plays, or funny moments.
-4. **Pre-Reaction Offset Cutting:** Audience reactions lag behind stream events by 15 to 30 seconds. Clip Watcher automatically offsets the extraction start time backwards by 30 seconds to capture the initiating moment rather than just the aftermath.
-5. **Whisper Transcription & Creator Credit:** Generates synchronized `.srt` subtitles using Whisper and burns high-visibility captions. Automatically compiles a credits manifest with the streamer handle, live channel URL, and timestamp.
+### Pipeline Inputs
+
+| Parameter | Type | Required | Default | Description | Example |
+|---|---|---|---|---|---|
+| `channel` | string | Yes | - | Twitch username or live stream channel handle. | `lexigraham` or `https://www.twitch.tv/lexigraham` |
+| `output_dir` | path | No | `./clips` | Target directory for highlight MP4s and credit logs. | `./clips/lexigraham` |
+| `multiplier` | float | No | `3.0` | Velocity threshold multiplier over rolling 5-min baseline. | `3.0` (triggers on 3x surge) |
+| `window` | integer | No | `10` | Evaluation window in seconds to compute chat rate. | `10` seconds |
+| `pre_roll` | integer | No | `30` | Seconds to look backward from reaction to capture event. | `30` seconds |
+| `duration` | integer | No | `45` | Total duration of the extracted video clip in seconds. | `45` seconds |
+| `whisper_model`| string | No | `ggml-medium.en.bin` | Speech-to-text model for subtitle synthesis. | `ggml-medium.en.bin` or `base` |
+
+### Pipeline Outputs
+
+| Output Asset | Format | Location | Description |
+|---|---|---|---|
+| Highlight Video | `.mp4` | `clips/clip_<channel>_<ts>.mp4` | Extracted 45-second high-energy highlight clip. |
+| Captioned Video | `.mp4` | `clips/clip_<channel>_<ts>_captioned.mp4` | Highlight video with high-visibility burned subtitles. |
+| Subtitle Track | `.srt` | `clips/clip_<channel>_<ts>.srt` | Synchronized speech transcript generated by Whisper. |
+| Attribution JSON | `.json` | `clips/clip_<channel>_<ts>_attribution.json` | Structured metadata (streamer handle, stream URL, clip timestamp). |
+| Creator Credits | `.txt` | `clips/clip_<channel>_<ts>_credits.txt` | Ready-to-copy social post caption with original creator credit and link. |
+| Stream Buffer | `.ts` | `stream.ts` | Rolling local transport stream of live broadcast. |
+| Chat Velocity Log | `.log` | `chat.log` | Timestamped log of anonymous chat messages for velocity auditing. |
 
 ---
 
-## Prerequisites
+## Live Testing Prerequisites
 
-- **Python:** 3.10 or higher
-- **FFmpeg:** Installed and added to system `PATH`
-- **Streamlink:** `pip install streamlink`
-- **Whisper:** `whisper-cli` (whisper.cpp) or `openai-whisper` (optional, for burning subtitles)
+To test Clip Watcher live on a real broadcast (such as `https://www.twitch.tv/lexigraham`):
+
+1. **Python 3.10+**: Ensure Python is available in terminal (`python --version`).
+2. **Streamlink**: Pulls the live stream transport stream without a browser (`pip install streamlink`).
+3. **FFmpeg**: Required for lossless cutting and audio/video remuxing (`ffmpeg -version`).
+4. **Whisper (Optional)**: `whisper-cli` (whisper.cpp) or `pip install openai-whisper` for automated subtitle burning. Fast video clipping works even without Whisper installed.
+5. **Live Twitch Channel**: Channel must currently be broadcasting live (e.g. `https://www.twitch.tv/lexigraham`).
 
 ---
 
-## Installation
+## Quickstart & Live Testing Commands
 
+### 1. Test Live Chat Velocity on lexigraham
+Listen to real-time chat on `https://www.twitch.tv/lexigraham` without requiring an account:
 ```bash
-git clone https://github.com/abhinavm945/clip-watcher.git
-cd clip-watcher
-pip install -r requirements.txt
+python -m clip_watcher watch --channel lexigraham --output-dir ./clips
 ```
 
-Via AIStoreHub CLI:
+### 2. Verify Stream Status
+Check available video qualities for `https://www.twitch.tv/lexigraham`:
 ```bash
-aihub pull @abhinavm945/clip-watcher
+streamlink twitch.tv/lexigraham
 ```
 
----
-
-## CLI Usage
-
-### 1. Watch and Automatically Clip
-Start automated background monitoring for any Twitch channel:
-```bash
-python -m clip_watcher watch --channel shroud --output-dir ./clips
-```
-
-### 2. Analyze Existing Chat Logs
-Find velocity spikes in an existing `chat.log` file:
+### 3. Analyze Historical Chat Log for Reaction Spikes
+Analyze message velocity from `chat.log`:
 ```bash
 python -m clip_watcher analyze --log-file chat.log --multiplier 3.0 --window 10
 ```
 
-### 3. Manual Extraction
-Extract a specific highlight offset:
+### 4. Extract Manual Highlight
+Extract a 45-second highlight segment from `stream.ts`:
 ```bash
-python -m clip_watcher cut --stream stream.ts --start 1420.0 --duration 45 --output ./clips/highlight.mp4
+python -m clip_watcher cut --stream stream.ts --start 120.0 --duration 45 --output ./clips/lexigraham_moment.mp4
 ```
 
-### 4. Transcribe and Burn Subtitles
-Transcribe audio and burn high-contrast captions:
+### 5. Burn Subtitles
+Transcribe audio and burn subtitles onto the clip:
 ```bash
-python -m clip_watcher transcribe --clip ./clips/highlight.mp4
+python -m clip_watcher transcribe --clip ./clips/lexigraham_moment.mp4
 ```
 
 ---
 
-## Claude Code & AI Agent Integration
+## Claude Code & AI Agent Skill Integration
 
-Clip Watcher includes a complete `SKILL.md` specification. You can point Claude Code, Cursor, or Codex directly to this repository:
+Clip Watcher includes a complete `SKILL.md` specification. Point Claude Code, Cursor, or Codex directly to this skill:
 
 ```bash
-claude "Monitor twitch.tv/streamer overnight with clip-watcher and summarize extracted highlights in the morning."
+claude "Monitor https://www.twitch.tv/lexigraham overnight with clip-watcher and compile the top highlight clips with creator credits."
 ```
-
-The agent will execute `python -m clip_watcher watch`, manage process lifecycle, and deliver completed clips with transcriptions and attribution logs.
 
 ---
 
-## Creator Ethics and Fair Use
+## Creator Attribution and Fair Use Rule
 
-Clip Watcher enforces ethical content repurposing:
-- Every clip generates a companion `credits.txt` and `attribution.json`.
-- Streamer links and channel usernames must be preserved on all publishing destinations (YouTube Shorts, TikTok, Instagram Reels, X).
-- Intended for transformative commentary, news aggregation, and community highlights under fair use.
+Clip Watcher enforces ethical content curation:
+- Every generated clip produces `credits.txt` and `attribution.json`.
+- Streamer handles and live broadcast URLs (e.g. `https://www.twitch.tv/lexigraham`) must be retained on all distribution formats (Shorts, Reels, TikTok, X).
+- Designed for transformative highlights, community moments, and esports commentary.
 
 ---
 

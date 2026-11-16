@@ -53,8 +53,10 @@ class TwitchChatListener:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.sock.connect((self.host, self.port))
                 
+                self._send("PASS oauth:none")
                 self._send(f"NICK {self.nick}")
                 self._send(f"USER {self.nick} 0 * :{self.nick}")
+                self._send("CAP REQ :twitch.tv/tags twitch.tv/commands")
                 self._send(f"JOIN #{self.channel}")
 
                 buffer = ""
@@ -90,17 +92,30 @@ class TwitchChatListener:
 
     def _handle_privmsg(self, line: str):
         try:
-            parts = line.split(":", 2)
-            if len(parts) >= 3:
-                sender = parts[1].split("!")[0]
-                content = parts[2].strip()
-                now = datetime.now(timezone.utc)
-                ts_str = now.isoformat()
-                
-                with open(self.log_file, "a", encoding="utf-8") as f:
-                    f.write(f"[{ts_str}] <{sender}> {content}\n")
+            sender = "anonymous"
+            if "!" in line and "PRIVMSG" in line:
+                prefix = line.split("PRIVMSG")[0]
+                if "!" in prefix:
+                    sender = prefix.split("!")[0].split(":")[-1].strip()
 
-                if self.on_message:
-                    self.on_message(now, sender, content)
+            content = ""
+            if " PRIVMSG #" in line:
+                after_privmsg = line.split(" PRIVMSG #", 1)[1]
+                if " :" in after_privmsg:
+                    content = after_privmsg.split(" :", 1)[1].strip()
+                else:
+                    content = after_privmsg.strip()
+            elif "PRIVMSG" in line:
+                parts = line.split("PRIVMSG", 1)[1]
+                content = parts.split(":", 1)[1].strip() if ":" in parts else parts.strip()
+
+            now = datetime.now(timezone.utc)
+            ts_str = now.isoformat()
+
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(f"[{ts_str}] <{sender}> {content}\n")
+
+            if self.on_message:
+                self.on_message(now, sender, content)
         except Exception:
             pass

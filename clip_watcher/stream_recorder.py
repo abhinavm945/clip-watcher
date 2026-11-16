@@ -5,6 +5,7 @@ Continuously attempts to connect and records live broadcast to a transport strea
 
 import shutil
 import subprocess
+import sys
 import threading
 from pathlib import Path
 from typing import Optional
@@ -26,17 +27,16 @@ class StreamRecorder:
         self._thread: Optional[threading.Thread] = None
 
     def start(self):
-        streamlink_path = shutil.which("streamlink")
-        if not streamlink_path:
-            raise FileNotFoundError(
-                "streamlink executable not found in PATH. Install via: pip install streamlink"
-            )
+        streamlink_bin = shutil.which("streamlink")
+        if streamlink_bin:
+            base_cmd = [streamlink_bin]
+        else:
+            base_cmd = [sys.executable, "-m", "streamlink"]
 
         self.output_file.parent.mkdir(parents=True, exist_ok=True)
         url = f"twitch.tv/{self.channel}"
 
-        cmd = [
-            streamlink_path,
+        cmd = base_cmd + [
             url,
             self.quality,
             "-o",

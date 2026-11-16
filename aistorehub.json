@@ -4,7 +4,7 @@
   "slug": "clip-watcher",
   "type": "skill",
   "version": "1.0.0",
-  "description": "Autonomous live stream highlight clipping pipeline for Twitch broadcasts. Monitors anonymous IRC chat velocity, detects 3x reaction surges, extracts video clips with FFmpeg (-30s pre-roll), transcribes subtitles via Whisper, and generates streamer credit metadata.",
+  "description": "Autonomous live stream highlight clipping pipeline for Twitch broadcasts. Monitors anonymous IRC chat velocity, detects 3x reaction surges, extracts video clips with FFmpeg (-30s pre-roll), transcribes subtitles via Whisper, and generates streamer credit metadata. Verified live with https://www.twitch.tv/lexigraham.",
   "author": {
     "name": "Abhinav Mishra",
     "username": "abhinavm945",
@@ -25,8 +25,49 @@
     "whisper",
     "claude-code",
     "autonomous-agent",
-    "skills"
+    "skills",
+    "lexigraham"
   ],
+  "inputs": {
+    "channel": {
+      "type": "string",
+      "required": true,
+      "description": "Twitch username or channel URL",
+      "default": "lexigraham",
+      "example": "https://www.twitch.tv/lexigraham"
+    },
+    "output_dir": {
+      "type": "string",
+      "required": false,
+      "description": "Output folder for extracted clips and credit metadata",
+      "default": "./clips"
+    },
+    "multiplier": {
+      "type": "number",
+      "required": false,
+      "description": "Reaction surge threshold multiplier vs 5-minute rolling average",
+      "default": 3.0
+    },
+    "pre_roll": {
+      "type": "integer",
+      "required": false,
+      "description": "Pre-roll offset in seconds to capture before reaction surge",
+      "default": 30
+    },
+    "duration": {
+      "type": "integer",
+      "required": false,
+      "description": "Duration of highlight clip in seconds",
+      "default": 45
+    }
+  },
+  "outputs": {
+    "clip_file": "clips/clip_<channel>_<timestamp>.mp4",
+    "captioned_clip": "clips/clip_<channel>_<timestamp>_captioned.mp4",
+    "subtitles": "clips/clip_<channel>_<timestamp>.srt",
+    "attribution": "clips/clip_<channel>_<timestamp>_attribution.json",
+    "credits": "clips/clip_<channel>_<timestamp>_credits.txt"
+  },
   "entrypoint": "clip_watcher.cli:cli",
   "requirements": [
     "click>=8.1.0",
@@ -40,9 +81,9 @@
     "python": ">=3.10"
   },
   "commands": {
-    "watch": "python -m clip_watcher watch --channel <channel>",
+    "watch": "python -m clip_watcher watch --channel lexigraham",
     "analyze": "python -m clip_watcher analyze --log-file chat.log",
-    "cut": "python -m clip_watcher cut --stream stream.ts --start <start_sec> --duration 45",
-    "transcribe": "python -m clip_watcher transcribe --clip <clip_path>"
+    "cut": "python -m clip_watcher cut --stream stream.ts --start 120 --duration 45",
+    "transcribe": "python -m clip_watcher transcribe --clip clips/lexigraham_moment.mp4"
   }
 }
