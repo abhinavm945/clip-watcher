@@ -66,42 +66,52 @@ class WatcherPipeline:
 
     def _on_chat_message(self, dt: datetime, sender: str, content: str):
         spike = self.detector.record_message(dt)
-        if spike and self.clipper and self.config.stream_output_file.exists():
+        if spike:
             spike_time, recent_rate, baseline_rate = spike
-            current_elapsed = time.time() - self.start_epoch
+            ratio = recent_rate / max(baseline_rate, 0.001)
+            print(f"[Chat Spike] Rate: {recent_rate:.1f} msg/s vs Baseline: {baseline_rate:.2f} msg/s ({ratio:.1f}x surge) at {spike_time.strftime('%H:%M:%S')}")
             
-            # Chat reacts ~30 seconds after the event happens on stream
-            clip_start = max(0.0, current_elapsed - self.config.pre_roll_seconds)
-            timestamp_str = spike_time.strftime("%Y%m%d_%H%M%S")
-            clip_name = f"clip_{self.config.channel}_{timestamp_str}"
-            
-            raw_clip = self.config.clips_dir / f"{clip_name}_raw.mp4"
-            final_clip = self.config.clips_dir / f"{clip_name}.mp4"
-            
-            try:
-                # 1. Cut clip
-                self.clipper.cut_clip(
-                    stream_file=self.config.stream_output_file,
-                    start_seconds=clip_start,
-                    duration_seconds=self.config.clip_duration_seconds,
-                    output_path=raw_clip,
-                    fast_copy=True,
-                )
+            if self.clipper and self.config.stream_output_file.exists():
+                current_elapsed = time.time() - self.start_epoch
+                clip_start = max(0.0, current_elapsed - self.config.pre_roll_seconds)
+                timestamp_str = spike_time.strftime("%Y%m%d_%H%M%S")
+                clip_name = f"clip_{self.config.channel}_{timestamp_str}"
+                
+                raw_clip = self.config.clips_dir / f"{clip_name}_raw.mp4"
+                final_clip = self.config.clips_dir / f"{clip_name}.mp4"
+                
+                print(f"[Clipper] Extracting highlight clip from stream.ts at offset -{self.config.pre_roll_seconds}s...")
+                try:
+                    # 1. Cut clip
+                    self.clipper.cut_clip(
+                        stream_file=self.config.stream_output_file,
+                        start_seconds=clip_start,
+                        duration_seconds=self.config.clip_duration_seconds,
+                        output_path=raw_clip,
+                        fast_copy=True,
+                    )
+                    print(f"[Clipper] Raw highlight saved to {raw_clip}")
 
-                # 2. Transcribe & Burn Subtitles if Whisper is available
-                srt_path = self.transcriber.transcribe(raw_clip)
-                if srt_path and self.config.burn_subtitles:
-                    self.transcriber.burn_subtitles(raw_clip, srt_path, final_clip)
-                else:
-                    raw_clip.rename(final_clip)
+                    # 2. Transcribe & Burn Subtitles if Whisper is available
+                    srt_path = self.transcriber.transcribe(raw_clip)
+                    if srt_path and self.config.burn_subtitles:
+                        print(f"[Whisper] Burning captions into {final_clip}...")
+                        self.transcriber.burn_subtitles(raw_clip, srt_path, final_clip)
+                    else:
+                        if raw_clip.exists():
+                            raw_clip.rename(final_clip)
+                    print(f"[Clipper] Completed clip: {final_clip}")
 
-                # 3. Generate streamer credit and attribution metadata
-                AttributionManager.generate_credits(
-                    channel=self.config.channel,
-                    clip_name=clip_name,
-                    output_dir=self.config.clips_dir,
-                    stream_timestamp=spike_time.isoformat(),
-                    duration_seconds=self.config.clip_duration_seconds,
-                )
-            except Exception:
-                pass
+                    # 3. Generate streamer credit and attribution metadata
+                    AttributionManager.generate_credits(
+                        channel=self.config.channel,
+                        clip_name=clip_name,
+                        output_dir=self.config.clips_dir,
+                        stream_timestamp=spike_time.isoformat(),
+                        duration_seconds=self.config.clip_duration_seconds,
+                    )
+                    print(f"[Attribution] Streamer credits saved to clips/{clip_name}_credits.txt")
+                except Exception as e:
+                    print(f"[Clipper Error] {e}")
+            elif not self.config.stream_output_file.exists():
+                print(f"[Clipper Notice] Stream buffer {self.config.stream_output_file} not ready yet.")

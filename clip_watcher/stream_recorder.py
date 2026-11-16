@@ -43,20 +43,24 @@ class StreamRecorder:
             str(self.output_file.resolve()),
             "--retry-streams",
             str(self.retry_delay),
-            "--force-progress",
         ]
 
         def _runner():
-            self.process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
-            if self.process.stdout:
-                for _ in self.process.stdout:
-                    pass
+            try:
+                self.process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                )
+                if self.process.stdout:
+                    for line in self.process.stdout:
+                        clean_line = line.strip()
+                        if "Opening stream" in clean_line or "Writing output" in clean_line:
+                            print(f"[Streamlink] {clean_line}")
+            except Exception as e:
+                print(f"[Streamlink Error] {e}")
 
         self._thread = threading.Thread(target=_runner, daemon=True)
         self._thread.start()
