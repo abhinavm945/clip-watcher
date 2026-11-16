@@ -67,7 +67,7 @@ class SpikeDetector:
         return None
 
     @classmethod
-    def parse_log_file(cls, log_path: str, window_seconds: int = 10, baseline_seconds: int = 300, multiplier: float = 3.0, min_messages: int = 8) -> List[dict]:
+    def parse_log_file(cls, log_path: str, window_seconds: int = 10, baseline_seconds: int = 300, multiplier: float = 2.0, min_messages: int = 2) -> List[dict]:
         detector = cls(
             window_seconds=window_seconds,
             baseline_seconds=baseline_seconds,
