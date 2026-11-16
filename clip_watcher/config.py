@@ -18,9 +18,9 @@ class WatcherConfig:
     # Spike detection parameters
     window_seconds: int = 10
     baseline_seconds: int = 300
-    spike_multiplier: float = 3.0
-    min_spike_messages: int = 8
-    cooldown_seconds: int = 60
+    spike_multiplier: float = 2.0
+    min_spike_messages: int = 2
+    cooldown_seconds: int = 45
     
     # Clip trimming parameters
     pre_roll_seconds: int = 30

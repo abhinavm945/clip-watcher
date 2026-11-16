@@ -28,7 +28,7 @@ def cli():
 @click.option("--channel", "-c", required=True, help="Twitch channel username to watch.")
 @click.option("--output-dir", "-o", default="clips", help="Directory where clips are saved.")
 @click.option("--multiplier", "-m", default=3.0, type=float, help="Spike threshold multiplier vs baseline (default: 3.0x).")
-@click.option("--min-messages", default=5, type=int, help="Minimum messages in window to qualify as a spike (default: 5).")
+@click.option("--min-messages", default=2, type=int, help="Minimum messages in window to qualify as a spike (default: 2).")
 @click.option("--pre-roll", default=30, type=int, help="Pre-roll seconds to capture prior to chat reaction (default: 30s).")
 @click.option("--duration", "-d", default=45, type=int, help="Clip length in seconds (default: 45s).")
 def watch(channel: str, output_dir: str, multiplier: float, min_messages: int, pre_roll: int, duration: int):
