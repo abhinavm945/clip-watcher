@@ -22,9 +22,10 @@ class WatcherConfig:
     min_spike_messages: int = 2
     cooldown_seconds: int = 45
     
-    # Clip trimming parameters
-    pre_roll_seconds: int = 30
-    clip_duration_seconds: int = 45
+    # Clip trimming parameters (1 minute total: 40s earlier, 20s after)
+    pre_roll_seconds: int = 40
+    post_roll_seconds: int = 20
+    clip_duration_seconds: int = 60
     
     # Whisper subtitle settings
     whisper_model: str = "ggml-medium.en.bin"

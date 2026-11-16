@@ -31,12 +31,12 @@ class StreamClipper:
         cmd = [
             self.ffmpeg_path,
             "-y",
+            "-i",
+            str(stream_file.resolve()),
             "-ss",
             f"{safe_start:.2f}",
             "-t",
             f"{duration_seconds:.2f}",
-            "-i",
-            str(stream_file.resolve()),
         ]
 
         if fast_copy:

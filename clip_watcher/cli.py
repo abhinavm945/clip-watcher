@@ -29,9 +29,10 @@ def cli():
 @click.option("--output-dir", "-o", default="clips", help="Directory where clips are saved.")
 @click.option("--multiplier", "-m", default=3.0, type=float, help="Spike threshold multiplier vs baseline (default: 3.0x).")
 @click.option("--min-messages", default=2, type=int, help="Minimum messages in window to qualify as a spike (default: 2).")
-@click.option("--pre-roll", default=30, type=int, help="Pre-roll seconds to capture prior to chat reaction (default: 30s).")
-@click.option("--duration", "-d", default=45, type=int, help="Clip length in seconds (default: 45s).")
-def watch(channel: str, output_dir: str, multiplier: float, min_messages: int, pre_roll: int, duration: int):
+@click.option("--pre-roll", default=40, type=int, help="Pre-roll seconds to capture prior to chat reaction (default: 40s).")
+@click.option("--post-roll", default=20, type=int, help="Post-roll seconds to capture after chat reaction (default: 20s).")
+@click.option("--duration", "-d", default=60, type=int, help="Total clip length in seconds (default: 60s).")
+def watch(channel: str, output_dir: str, multiplier: float, min_messages: int, pre_roll: int, post_roll: int, duration: int):
     """Start autonomous stream recording and reaction-triggered clipping."""
     config = WatcherConfig(
         channel=channel,
@@ -39,12 +40,13 @@ def watch(channel: str, output_dir: str, multiplier: float, min_messages: int, p
         spike_multiplier=multiplier,
         min_spike_messages=min_messages,
         pre_roll_seconds=pre_roll,
+        post_roll_seconds=post_roll,
         clip_duration_seconds=duration,
     )
     
     console.print(f"[bold green]Starting Clip Watcher for channel:[/bold green] [cyan]{channel}[/cyan]")
     console.print(f"[dim]Clips directory: {config.clips_dir}[/dim]")
-    console.print(f"[dim]Spike multiplier: {multiplier}x | Min messages: {min_messages} | Pre-roll: {pre_roll}s | Duration: {duration}s[/dim]")
+    console.print(f"[dim]Spike multiplier: {multiplier}x | Min messages: {min_messages} | Pre-roll: {pre_roll}s | Post-roll: {post_roll}s | Duration: {duration}s[/dim]")
     console.print("[yellow]Press Ctrl+C to stop.[/yellow]")
 
     pipeline = WatcherPipeline(config)
