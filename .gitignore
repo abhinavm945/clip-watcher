@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Stream recording and video files
+*.ts
+*.mp4
+*.mkv
+*.webm
+*.avi
+*.srt
+*.vtt
+*.log
+chat.log
+stream.ts
+clips/
+temp/
+
+# Distribution & IDE
+.vscode/
+.idea/
+*.egg-info/
+dist/
+build/

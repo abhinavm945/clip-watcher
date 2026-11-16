@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "name": "Clip Watcher: Autonomous Stream Highlight Clipper",
+  "slug": "clip-watcher",
+  "type": "skill",
+  "version": "1.0.0",
+  "description": "Autonomous live stream highlight clipping pipeline for Twitch broadcasts. Monitors anonymous IRC chat velocity, detects 3x reaction surges, extracts video clips with FFmpeg (-30s pre-roll), transcribes subtitles via Whisper, and generates streamer credit metadata.",
+  "author": {
+    "name": "Abhinav Mishra",
+    "username": "abhinavm945",
+    "github": "https://github.com/abhinavm945"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abhinavm945/clip-watcher"
+  },
+  "license": "MIT",
+  "category": "Video & Media",
+  "tags": [
+    "twitch",
+    "streaming",
+    "video-editing",
+    "clipper",
+    "ffmpeg",
+    "whisper",
+    "claude-code",
+    "autonomous-agent",
+    "skills"
+  ],
+  "entrypoint": "clip_watcher.cli:cli",
+  "requirements": [
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "streamlink>=6.0.0"
+  ],
+  "system_requirements": {
+    "ffmpeg": ">=5.0",
+    "streamlink": ">=6.0",
+    "python": ">=3.10"
+  },
+  "commands": {
+    "watch": "python -m clip_watcher watch --channel <channel>",
+    "analyze": "python -m clip_watcher analyze --log-file chat.log",
+    "cut": "python -m clip_watcher cut --stream stream.ts --start <start_sec> --duration 45",
+    "transcribe": "python -m clip_watcher transcribe --clip <clip_path>"
+  }
+}
